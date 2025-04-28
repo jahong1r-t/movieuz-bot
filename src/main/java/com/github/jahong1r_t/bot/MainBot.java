@@ -8,14 +8,19 @@ import com.github.jahong1r_t.utils.Utils;
 import lombok.SneakyThrows;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
+import org.telegram.telegrambots.meta.api.methods.GetMe;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static com.github.jahong1r_t.db.Datasource.channels;
 import static com.github.jahong1r_t.db.Datasource.movies;
@@ -25,7 +30,6 @@ public class MainBot extends TelegramLongPollingBot {
     private final AdminService adminService = new AdminService();
     private final UserService userService = new UserService();
     private final Utils utils = new Utils(this);
-
 
     @SneakyThrows
     @Override
@@ -48,7 +52,7 @@ public class MainBot extends TelegramLongPollingBot {
             } else if (callbackData.startsWith("page:")) {
                 handleCallback(callbackData, chatId, messageId, id);
             } else if (callbackData.startsWith("cd_")) {
-                if (!callbackQuery.getFrom().getId().equals(botConfig.BOT_ADMIN)){
+                if (!callbackQuery.getFrom().getId().equals(botConfig.BOT_ADMIN)) {
                     String[] parts = callbackData.split("_");
                     String movieCode = parts[1];
                     String number = parts[2];
@@ -59,7 +63,7 @@ public class MainBot extends TelegramLongPollingBot {
                             .text("Filmni baxolaganingiz uchun raxmat.")
                             .build();
                     execute(build);
-                }else {
+                } else {
                     utils.sendMessage(botConfig.BOT_ADMIN, "Bu tugma siz uchun emas!");
                 }
             } else {
@@ -145,6 +149,24 @@ public class MainBot extends TelegramLongPollingBot {
             utils.sendMessage(chatId, "Salom kino kodini yubor");
         } else {
             execute(build);
+        }
+    }
+
+
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+    public void start() {
+        scheduler.scheduleAtFixedRate(this::callGetMe, 0, 10, TimeUnit.MINUTES);
+    }
+
+
+    @SneakyThrows
+    private void callGetMe() {
+        try {
+            GetMe getMe = new GetMe();
+            execute(getMe);
+        } catch (TelegramApiException e) {
+            System.err.println("getMe chaqirishda xatolik: " + e.getMessage());
         }
     }
 
