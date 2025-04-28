@@ -14,7 +14,7 @@ public class Main {
         TelegramBotsApi api = new TelegramBotsApi(DefaultBotSession.class);
         MainBot mainBot = new MainBot();
         api.registerBot(mainBot);
-        mainBot.keepServerAwake();
+//        mainBot.keepServerAwake();
 
         new Thread(() -> {
             try {
