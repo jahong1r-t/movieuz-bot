@@ -7,6 +7,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -21,7 +22,10 @@ public class BotConfig {
 
 
     public BotConfig() {
-        try (FileInputStream input = new FileInputStream("application.properties")) {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("application.properties")) {
+            if (input == null) {
+                throw new IllegalStateException("application.properties not found in classpath");
+            }
             Properties properties = new Properties();
             properties.load(input);
             this.BOT_TOKEN = properties.getProperty("bot.token");
@@ -29,5 +33,6 @@ public class BotConfig {
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
+
     }
 }
