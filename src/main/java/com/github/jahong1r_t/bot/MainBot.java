@@ -8,11 +8,9 @@ import com.github.jahong1r_t.utils.Utils;
 import lombok.SneakyThrows;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
-import org.telegram.telegrambots.meta.api.methods.GetMe;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 
 import java.util.ArrayList;
@@ -155,21 +153,19 @@ public class MainBot extends TelegramLongPollingBot {
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-    public void start() {
-        scheduler.scheduleAtFixedRate(this::callGetMe, 0, 10, TimeUnit.MINUTES);
+    public void keepServerAwake() {
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                java.net.URL url = new java.net.URL("https://your-app-name.onrender.com");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.connect();
+                System.out.println("Server pinged, response code: " + conn.getResponseCode());
+            } catch (Exception e) {
+                System.err.println("Ping error: " + e.getMessage());
+            }
+        }, 0, 10, TimeUnit.MINUTES);
     }
-
-
-    @SneakyThrows
-    private void callGetMe() {
-        try {
-            GetMe getMe = new GetMe();
-            execute(getMe);
-        } catch (TelegramApiException e) {
-            System.err.println("getMe chaqirishda xatolik: " + e.getMessage());
-        }
-    }
-
 
     @Override
     public String getBotUsername() {

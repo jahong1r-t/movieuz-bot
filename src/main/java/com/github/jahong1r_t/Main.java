@@ -11,7 +11,7 @@ public class Main {
     public static void main(String[] args) {
         TelegramBotsApi api = new TelegramBotsApi(DefaultBotSession.class);
         MainBot mainBot = new MainBot();
+        mainBot.keepServerAwake();
         api.registerBot(mainBot);
-        mainBot.start();
     }
 }
