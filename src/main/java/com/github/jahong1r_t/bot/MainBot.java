@@ -156,7 +156,7 @@ public class MainBot extends TelegramLongPollingBot {
     public void keepServerAwake() {
         scheduler.scheduleAtFixedRate(() -> {
             try {
-                java.net.URL url = new java.net.URL("https://your-app-name.onrender.com");
+                java.net.URL url = new java.net.URL("https://movieuz-bot.onrender.com");
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.connect();
