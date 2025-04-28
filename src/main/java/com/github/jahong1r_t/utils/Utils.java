@@ -5,7 +5,6 @@ import com.github.jahong1r_t.exceptions.BotNotAdminException;
 import com.github.jahong1r_t.exceptions.InvalidChannelLinkException;
 import lombok.SneakyThrows;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.GetMe;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatMember;
@@ -21,7 +20,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
-import org.telegram.telegrambots.meta.generics.WebhookBot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,9 +31,9 @@ import java.util.stream.IntStream;
 import static com.github.jahong1r_t.utils.Keyboard.stars;
 
 public class Utils {
-    private final TelegramWebhookBot bot;
+    private final TelegramLongPollingBot bot;
 
-    public Utils(TelegramWebhookBot bot) {
+    public Utils(TelegramLongPollingBot bot) {
         this.bot = bot;
     }
 
