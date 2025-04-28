@@ -11,8 +11,9 @@ target/
 *.iws
 *.iml
 *.ipr
-
 .idea
+
+src/main/resources/application.properties
 
 ### Eclipse ###
 .apt_generated
