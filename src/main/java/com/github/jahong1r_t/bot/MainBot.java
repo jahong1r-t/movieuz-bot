@@ -6,12 +6,12 @@ import com.github.jahong1r_t.service.UserService;
 import com.github.jahong1r_t.utils.BotConfig;
 import com.github.jahong1r_t.utils.Utils;
 import lombok.SneakyThrows;
-import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
-
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -23,15 +23,35 @@ import java.util.concurrent.TimeUnit;
 import static com.github.jahong1r_t.db.Datasource.channels;
 import static com.github.jahong1r_t.db.Datasource.movies;
 
-public class MainBot extends TelegramLongPollingBot {
+public class MainBot extends TelegramWebhookBot {
     private final BotConfig botConfig = new BotConfig();
     private final AdminService adminService = new AdminService();
     private final UserService userService = new UserService();
     private final Utils utils = new Utils(this);
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+    public MainBot() {
+        keepServerAwake();
+    }
+
+    @Override
+    public String getBotUsername() {
+        return botConfig.BOT_USERNAME;
+    }
+
+    @Override
+    public String getBotToken() {
+        return botConfig.BOT_TOKEN;
+    }
+
+    @Override
+    public String getBotPath() {
+        return "/webhook"; // Webhook yo'li
+    }
 
     @SneakyThrows
     @Override
-    public void onUpdateReceived(Update update) {
+    public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
         if (update.hasMessage()) {
             if (update.getMessage().getChatId().equals(botConfig.BOT_ADMIN)) {
                 adminService.service(update, utils);
@@ -46,7 +66,10 @@ public class MainBot extends TelegramLongPollingBot {
             String id = callbackQuery.getId();
 
             if (callbackData.equals("check")) {
-                returnAlertMessage(callbackQuery);
+                AnswerCallbackQuery alertMessage = returnAlertMessage(callbackQuery);
+                if (alertMessage != null) {
+                    return alertMessage;
+                }
             } else if (callbackData.startsWith("page:")) {
                 handleCallback(callbackData, chatId, messageId, id);
             } else if (callbackData.startsWith("cd_")) {
@@ -55,12 +78,11 @@ public class MainBot extends TelegramLongPollingBot {
                     String movieCode = parts[1];
                     String number = parts[2];
                     movies.get(movieCode).getStars().add(Integer.parseInt(number));
-                    AnswerCallbackQuery build = AnswerCallbackQuery.builder()
+                    return AnswerCallbackQuery.builder()
                             .showAlert(true)
                             .callbackQueryId(callbackQuery.getId())
-                            .text("Filmni baxolaganingiz uchun raxmat.")
+                            .text("Filmni baholaganingiz uchun rahmat.")
                             .build();
-                    execute(build);
                 } else {
                     utils.sendMessage(botConfig.BOT_ADMIN, "Bu tugma siz uchun emas!");
                 }
@@ -74,6 +96,7 @@ public class MainBot extends TelegramLongPollingBot {
                 }
             }
         }
+        return null;
     }
 
     @SneakyThrows
@@ -133,7 +156,7 @@ public class MainBot extends TelegramLongPollingBot {
     }
 
     @SneakyThrows
-    public void returnAlertMessage(CallbackQuery callbackQuery) {
+    public AnswerCallbackQuery returnAlertMessage(CallbackQuery callbackQuery) {
         AnswerCallbackQuery build = AnswerCallbackQuery.builder()
                 .text("❌ Kechirasiz siz barcha kanallarga a'zo bo'lmadingiz")
                 .showAlert(true)
@@ -145,13 +168,11 @@ public class MainBot extends TelegramLongPollingBot {
         if (utils.isChatMember(chatId, channels)) {
             execute(DeleteMessage.builder().chatId(chatId).messageId(messageId).build());
             utils.sendMessage(chatId, "Salom kino kodini yubor");
+            return null;
         } else {
-            execute(build);
+            return build;
         }
     }
-
-
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public void keepServerAwake() {
         scheduler.scheduleAtFixedRate(() -> {
@@ -165,15 +186,5 @@ public class MainBot extends TelegramLongPollingBot {
                 System.err.println("Ping error: " + e.getMessage());
             }
         }, 0, 10, TimeUnit.MINUTES);
-    }
-
-    @Override
-    public String getBotUsername() {
-        return botConfig.BOT_USERNAME;
-    }
-
-    @Override
-    public String getBotToken() {
-        return botConfig.BOT_TOKEN;
     }
 }
