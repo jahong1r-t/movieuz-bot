@@ -21,7 +21,7 @@ public class BotConfig {
 
 
     public BotConfig() {
-        try (FileInputStream input = new FileInputStream("src/main/resources/application.properties")) {
+        try (FileInputStream input = new FileInputStream("application.properties")) {
             Properties properties = new Properties();
             properties.load(input);
             this.BOT_TOKEN = properties.getProperty("bot.token");
