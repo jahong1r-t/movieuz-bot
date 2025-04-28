@@ -160,9 +160,9 @@ public class MainBot extends TelegramLongPollingBot {
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.connect();
-                System.out.println("Server pinged, response code: " + conn.getResponseCode());
+                System.out.println("keep server awake: " + conn.getResponseCode());
             } catch (Exception e) {
-                System.err.println("Ping error: " + e.getMessage());
+                System.err.println("Ping error keep server awake: " + e.getMessage());
             }
         }, 0, 10, TimeUnit.MINUTES);
     }
