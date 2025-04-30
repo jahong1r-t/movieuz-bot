@@ -29,7 +29,6 @@ public interface Message {
             Kanal uzildi ✔️.
             """;
 
-    // ===================== Admin commands =====================
     String welcomeAdminMsg = """
             👨‍💻 Xush kelibsiz, admin! Siz admin paneldasiz. Kerakli amallarni tanlang.
             """;
