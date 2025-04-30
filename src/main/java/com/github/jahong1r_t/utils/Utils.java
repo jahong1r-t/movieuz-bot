@@ -148,10 +148,7 @@ public class Utils {
         if (data == null || data.isEmpty() || messagePerPage == null || messagePerPage.isEmpty()) {
             sendMessage(chatId, "Hech qanday ma'lumot topilmadi.");
             if (callbackQueryId != null) {
-                bot.execute(AnswerCallbackQuery.builder()
-                        .callbackQueryId(callbackQueryId)
-                        .text("Ma'lumot yo'q")
-                        .build());
+                answerCallbackQuery(callbackQueryId, "Ma'lumot yo'q", false);
             }
             return;
         }
@@ -159,15 +156,12 @@ public class Utils {
         if (currentPage < 1 || currentPage > messagePerPage.size()) {
             sendMessage(chatId, "Noto'g'ri sahifa raqami.");
             if (callbackQueryId != null) {
-                bot.execute(AnswerCallbackQuery.builder()
-                        .callbackQueryId(callbackQueryId)
-                        .text("Noto'g'ri sahifa raqami")
-                        .build());
+                answerCallbackQuery(callbackQueryId, "Noto'g'ri sahifa raqami", false);
             }
             return;
         }
 
-        int maxPage = (int) Math.ceil((double) data.size() / 10);
+        int maxPage = messagePerPage.size();
         String messageText = messagePerPage.get(currentPage - 1);
 
         InlineKeyboardMarkup markup = buildPaginationKeyboard(currentPage, maxPage, data, chatId);
@@ -178,15 +172,9 @@ public class Utils {
                 return;
             }
 
-            SendMessage sendMessage = new SendMessage();
-            sendMessage.setChatId(chatId);
-            sendMessage.setText(messageText);
-            sendMessage.setReplyMarkup(markup);
-            bot.execute(sendMessage);
+            sendMessage(chatId, messageText, markup);
             if (callbackQueryId != null) {
-                bot.execute(AnswerCallbackQuery.builder()
-                        .callbackQueryId(callbackQueryId)
-                        .build());
+                answerCallbackQuery(callbackQueryId, "", false);
             }
         } else {
             EditMessageText editMessage = new EditMessageText();
@@ -197,12 +185,13 @@ public class Utils {
 
             try {
                 bot.execute(editMessage);
+                if (callbackQueryId != null) {
+                    answerCallbackQuery(callbackQueryId, "", false);
+                }
             } catch (TelegramApiRequestException e) {
                 if (e.getMessage().contains("Boshqa sahifalar mavjud emas ❌")) {
                     if (callbackQueryId != null) {
-                        bot.execute(AnswerCallbackQuery.builder()
-                                .callbackQueryId(callbackQueryId)
-                                .build());
+                        answerCallbackQuery(callbackQueryId, "", false);
                     }
                 } else {
                     throw e;
@@ -232,7 +221,8 @@ public class Utils {
                 callbackData = callbackData.replaceAll("[^a-zA-Z0-9_\\-]", "_");
             }
 
-            int buttonNumber = (i % 10) + 1;
+            // Number buttons from 1 to 10 for each page
+            int buttonNumber = (i % itemsPerPage) + 1;
             row.add(InlineKeyboardButton.builder()
                     .text(String.valueOf(buttonNumber))
                     .callbackData(callbackData)
@@ -252,12 +242,18 @@ public class Utils {
 
         if (currentPage > 1) {
             int prevPage = currentPage - 1;
-            navigationButtons.add(InlineKeyboardButton.builder().text("⬅️").callbackData("page:" + prevPage).build());
+            navigationButtons.add(InlineKeyboardButton.builder()
+                    .text("⬅️")
+                    .callbackData("page:" + prevPage)
+                    .build());
         }
 
         if (currentPage < maxPage) {
             int nextPage = currentPage + 1;
-            navigationButtons.add(InlineKeyboardButton.builder().text("➡️").callbackData("page:" + nextPage).build());
+            navigationButtons.add(InlineKeyboardButton.builder()
+                    .text("➡️")
+                    .callbackData("page:" + nextPage)
+                    .build());
         }
 
         if (!navigationButtons.isEmpty()) {

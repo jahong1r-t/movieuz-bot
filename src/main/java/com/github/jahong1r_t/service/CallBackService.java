@@ -10,6 +10,9 @@ import lombok.SneakyThrows;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 
 import static com.github.jahong1r_t.db.Datasource.*;
@@ -30,7 +33,7 @@ public class CallBackService {
         if (data.equals("check")) {
             check(id, chatId, messageId, utils);
         } else if (data.startsWith("page")) {
-            pagination();
+            pagination(data, utils, chatId, messageId, id);
         } else if (data.startsWith("tool")) {
             tools(data, chatId, utils);
         } else if (data.startsWith("rate")) {
@@ -62,55 +65,59 @@ public class CallBackService {
     }
 
     @SneakyThrows
-    private void pagination() {
-//        String pageData = data.replace("page:", "");
-//        int newPage;
-//        try {
-//            newPage = Integer.parseInt(pageData);
-//        } catch (NumberFormatException e) {
-//            utils.sendMessage(chatId, "Noto'g'ri sahifa raqami.");
-//            return;
-//        }
-//
-//        ArrayList<String> messagePerPage = new ArrayList<>();
-//        ArrayList<String> data = new ArrayList<>();
-//
-//        List<Movie> sortedMovies = movies.values().stream().sorted(Comparator.comparing(Movie::getCaption)).toList();
-//
-//        StringBuilder pageBuilder = new StringBuilder();
-//        int movieCount = 0;
-//
-//        for (Movie movie : sortedMovies) {
-//            if (movieCount > 0 && movieCount % 10 == 0) {
-//                messagePerPage.add(pageBuilder.toString());
-//                pageBuilder = new StringBuilder();
-//            }
-//
-//            String caption = movie.getCaption() != null ? movie.getCaption() : "Noma'lum";
-//            String addedDate = movie.getAddedDate() != null ? movie.getAddedDate().toLocalDate().toString() : "Noma'lum";
-//
-//            pageBuilder.append(movieCount + 1).append(". ").append(caption).append(" (").append(addedDate).append(").\n");
-//
-//            data.add(movie.getFileId() != null ? movie.getFileId() : "");
-//
-//            movieCount++;
-//        }
-//
-//        if (!pageBuilder.isEmpty()) {
-//            messagePerPage.add(pageBuilder.toString());
-//        }
-//
-//        if (messagePerPage.isEmpty()) {
-//            messagePerPage.add("Filmlar topilmadi (Hozircha hech qanday film mavjud emas)");
-//            data.add("");
-//        }
-//
-//        if (newPage < 1 || newPage > messagePerPage.size()) {
-//            utils.sendMessage(chatId, "Noto'g'ri sahifa raqami.");
-//            return;
-//        }
+    private void pagination(String data, Utils utils, Long chatId, Integer messageId, String id) {
+        String pageData = data.replace("page:", "");
+        int newPage;
+        try {
+            newPage = Integer.parseInt(pageData);
+        } catch (NumberFormatException e) {
+            utils.sendMessage(chatId, "Noto'g'ri sahifa raqami.");
+            return;
+        }
 
-//        utils.sendPaginationKeyboard(chatId, , , , messageId, id);
+        ArrayList<String> messagePerPage = new ArrayList<>();
+        ArrayList<String> datas = new ArrayList<>();
+        // Sort movies by addedDate (newest first), handling nulls
+        List<Movie> sortedMovies = moviesRepository.getAllMovies().stream()
+                .sorted(Comparator.comparing(Movie::getAddedDate, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+
+        StringBuilder pageBuilder = new StringBuilder();
+        int movieCount = 0;
+
+        for (Movie movie : sortedMovies) {
+            if (movieCount > 0 && movieCount % 10 == 0) {
+                messagePerPage.add(pageBuilder.toString());
+                pageBuilder = new StringBuilder();
+            }
+
+            String caption = movie.getCaption() != null ? movie.getCaption() : "Noma'lum";
+            String addedDate = movie.getAddedDate() != null ? movie.getAddedDate().toLocalDate().toString() : "Noma'lum";
+
+            // Numbering resets to 1 for each page
+            int displayNumber = (movieCount % 10) + 1;
+            pageBuilder.append(displayNumber).append(". ").append(caption).append(" (").append(addedDate).append(").\n");
+
+            datas.add(movie.getCode() != null ? movie.getCode() : "");
+
+            movieCount++;
+        }
+
+        if (!pageBuilder.isEmpty()) {
+            messagePerPage.add(pageBuilder.toString());
+        }
+
+        if (messagePerPage.isEmpty()) {
+            messagePerPage.add("Filmlar topilmadi (Hozircha hech qanday film mavjud emas)");
+            datas.add("");
+        }
+
+        if (newPage < 1 || newPage > messagePerPage.size()) {
+            utils.sendMessage(chatId, "Noto'g'ri sahifa raqami.");
+            return;
+        }
+
+        utils.sendPaginationKeyboard(chatId, messagePerPage, datas, newPage, messageId, id);
     }
 
 
