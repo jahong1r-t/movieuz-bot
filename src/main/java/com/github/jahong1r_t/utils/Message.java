@@ -116,8 +116,6 @@ public interface Message {
             ⚠️ Iltimos, yuboriladigan xabarni kiriting yoki fayl ilova qiling.
             """;
 
-
-    // ===================== General messages =====================
     String unknownCommandMsg = """
             ❓ Kechirasiz, bunday buyruq mavjud emas.
             """;
