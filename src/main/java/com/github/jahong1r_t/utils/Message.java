@@ -121,7 +121,7 @@ public interface Message {
 
     // ===================== General messages =====================
     String unknownCommandMsg = """
-            ❓ Kechirasiz, siz kiritgan buyruq tanilmadi.
+            ❓ Kechirasiz, bunday buyruq mavjud emas.
             """;
 
     String unknownStateMsg = """
