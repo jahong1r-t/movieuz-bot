@@ -78,10 +78,6 @@ public interface Message {
             ⚠️ Sizda ulangan kanallar mavjud emas
             """;
 
-    String channelConnectionErrorMsg = """
-            ❌ Kanalni ulashda xatolik yuz berdi: %s Iltimos, keyinroq qayta urinib ko‘ring.
-            """;
-
     String promptBroadcastMsg = """
             📢 Iltimos, barcha foydalanuvchilarga yuboriladigan xabar matnini kiriting. Rasm, video yoki fayl bo‘lsa, ilova qiling.
             """;
