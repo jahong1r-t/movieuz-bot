@@ -1,7 +1,6 @@
 package com.github.jahong1r_t.utils;
 
 import com.github.jahong1r_t.exceptions.BotNotAdminException;
-import com.github.jahong1r_t.exceptions.InvalidChannelLinkException;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.telegram.telegrambots.meta.api.methods.*;
@@ -38,7 +37,6 @@ public class Utils {
     private static final InputFile inputFile = new InputFile();
     private static final ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
     private static final InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-    private static final AnswerCallbackQuery answerCallbackQuery = new AnswerCallbackQuery();
 
     @SneakyThrows
     public void sendMessage(Long chatId, String text) {
@@ -126,7 +124,7 @@ public class Utils {
 
             List<InlineKeyboardButton> row = new ArrayList<>();
             row.add(InlineKeyboardButton.builder()
-                    .url(linkResolverHttps(url))
+                    .url(url)
                     .text(buttonText)
                     .build());
 
@@ -278,7 +276,7 @@ public class Utils {
         getChatMember.setUserId(botId);
 
         for (String s : chats) {
-            getChatMember.setChatId(linkResolver(s));
+            getChatMember.setChatId(toAtUsername(s));
             ChatMember member = bot.execute(getChatMember);
 
             if (!(member instanceof ChatMemberAdministrator)) {
@@ -293,7 +291,7 @@ public class Utils {
         if (isBotAdmin(chats)) {
             for (String chat : chats) {
                 ChatMember execute = bot.execute(GetChatMember.builder()
-                        .chatId(linkResolver(chat))
+                        .chatId(toAtUsername(chat))
                         .userId(userId)
                         .build());
 
@@ -308,40 +306,22 @@ public class Utils {
         }
     }
 
-    @SneakyThrows
-    private static String linkResolver(String link) {
-        if (link == null || link.isBlank()) {
-            throw new InvalidChannelLinkException("Channel identifier cannot be null or empty");
+    public String toAtUsername(String link) {
+        if (link == null) return null;
+
+        link = link.trim();
+
+        if (link.startsWith("https://t.me/")) {
+            return "@" + link.substring("https://t.me/".length());
         }
 
         if (link.startsWith("@")) {
             return link;
         }
 
-        if (link.startsWith("https://t.me/")) {
-            String username = link.substring("https://t.me/".length());
-            if (username.isEmpty()) {
-                throw new InvalidChannelLinkException("No username found in Telegram link");
-            }
-            return "@" + username;
-        }
         return "@" + link;
     }
 
-    @SneakyThrows
-    private static String linkResolverHttps(String link) {
-        if (link == null || link.isBlank()) {
-            throw new InvalidChannelLinkException("Channel identifier cannot be null or empty");
-        }
-
-        if (link.startsWith("@")) {
-            return "https://t.me/" + link.substring("@".length());
-        } else if (link.startsWith("https://t.me/")) {
-            return link;
-        }
-
-        return "https://t.me/" + link;
-    }
 
     @SneakyThrows
     public void sendMessage(Long chatId, String text, InlineKeyboardMarkup markup) {

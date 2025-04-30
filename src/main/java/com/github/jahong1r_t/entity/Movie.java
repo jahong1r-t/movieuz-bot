@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -18,5 +17,5 @@ public class Movie {
     private String code;
     private Integer download;
     private LocalDateTime addedDate;
-    private ArrayList<Integer> stars;
+    private Double avgRate;
 }

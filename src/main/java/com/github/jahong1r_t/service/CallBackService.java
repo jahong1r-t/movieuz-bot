@@ -2,18 +2,23 @@ package com.github.jahong1r_t.service;
 
 import com.github.jahong1r_t.entity.Movie;
 import com.github.jahong1r_t.entity.enums.State;
+import com.github.jahong1r_t.repository.ChannelsRepository;
+import com.github.jahong1r_t.repository.MoviesRepository;
 import com.github.jahong1r_t.utils.Message;
 import com.github.jahong1r_t.utils.Utils;
 import lombok.SneakyThrows;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 
 import static com.github.jahong1r_t.db.Datasource.*;
 import static com.github.jahong1r_t.utils.Keyboard.admin_tools;
 import static com.github.jahong1r_t.utils.Keyboard.admin_tools_data;
 
 public class CallBackService {
+    private final MoviesRepository moviesRepository = new MoviesRepository();
+    private final ChannelsRepository channelsRepository = new ChannelsRepository();
 
     @SneakyThrows
     public void service(CallbackQuery callbackQuery, Utils utils) {
@@ -29,19 +34,30 @@ public class CallBackService {
         } else if (data.startsWith("tool")) {
             tools(data, chatId, utils);
         } else if (data.startsWith("rate")) {
-            rate(data, utils);
+            rate(data, id, chatId, utils);
+        } else if (data.startsWith("https://t.me")) {
+            disconnectChannel(id, data, utils);
         } else {
             getMovie(data, chatId, utils);
         }
     }
 
+    /// 100% done | checked
     @SneakyThrows
     private void check(String id, Long chatId, Integer messageId, Utils utils) {
-        if (utils.isChatMember(chatId, channels)) {
+        if (utils.isChatMember(chatId, channelsRepository.getAllChannel())) {
             utils.deleteMessage(chatId, messageId);
             utils.sendMessage(chatId, Message.promptMovieCodeMsg);
         } else {
             utils.answerCallbackQuery(id, Message.notFollowedChannelsMsg, true);
+        }
+    }
+
+    @SneakyThrows
+    private void disconnectChannel(String id, String data, Utils utils) {
+        if (channelsRepository.isExist(data)) {
+            channelsRepository.deleteChannel(data);
+            utils.answerCallbackQuery(id, Message.disconnectedMsg, false);
         }
     }
 
@@ -97,35 +113,51 @@ public class CallBackService {
 //        utils.sendPaginationKeyboard(chatId, , , , messageId, id);
     }
 
+
+    /// 100% done | checked
     @SneakyThrows
     private void tools(String data, Long chatId, Utils utils) {
         String[] split = data.split(":");
 
         String code = split[1];
         if (split[2].equals("edit")) {
-            movies.remove(code);
+            moviesRepository.deleteMovie(code);
             stateMap.put(chatId, State.NEW_MOVIE);
             utils.sendMessage(chatId, Message.promptMovieUploadMsg);
         } else if (split[2].equals("delete")) {
-            movies.remove(code);
+            moviesRepository.deleteMovie(code);
             utils.sendMessage(chatId, Message.movieRemovedMsg);
         }
     }
 
+    ///100% done | checked
     @SneakyThrows
-    private void rate(String data, Utils utils) {
+    private void rate(String data, String id, Long chatId, Utils utils) {
         String[] parts = data.split(":");
         String code = parts[1];
         int star = Integer.parseInt(parts[2]);
 
-        movies.get(code).getStars().add(star);
-        utils.answerCallbackQuery(code, Message.thankForRatingMsg, false);
+        Optional<Movie> movieByCode = moviesRepository.getMovieByCode(code);
+        if (movieByCode.isPresent()) {
+            try {
+                moviesRepository.rateMovie(code, star, chatId);
+                utils.answerCallbackQuery(id, Message.thankForRatingMsg, false);
+            } catch (Exception e) {
+                utils.answerCallbackQuery(id, Message.allReadyRatingMsg, false);
+            }
+
+        } else {
+            utils.sendMessage(chatId, Message.movieNotFoundMsg);
+        }
     }
 
+    /// 100% done | unchecked
     @SneakyThrows
     private void getMovie(String data, Long chatId, Utils utils) {
-        Movie movie = movies.get(data);
-        if (movie != null) {
+        Optional<Movie> movieByCode = moviesRepository.getMovieByCode(data);
+        if (movieByCode.isPresent()) {
+            Movie movie = movieByCode.get();
+
             utils.sendVideo(chatId, captionBuilder(movie), movie.getFileId(),
                     utils.inlineKeyboard(admin_tools, admin_tools_data(movie.getCode())));
         } else {
@@ -133,26 +165,22 @@ public class CallBackService {
         }
     }
 
+    /// 100% done | checked
     @SneakyThrows
     private String captionBuilder(Movie movie) {
-        String averageStars;
-
-        if (movie.getStars().isEmpty()) {
-            averageStars = "Film uchun baholar qoldirilmagan";
-        } else {
-            double average = movie.getStars().stream().mapToInt(Integer::intValue).average().orElse(0.0);
-
-            averageStars = String.format("%.1f", average);
-        }
-
         return """
                 🎬 %s
                 
                 📥 Yuklab olingan: %d ta
                 ⭐ O‘rtacha baho: %s
                 📅 Yuklangan sana: %s
+                🔑 Film kodi: %s
                 
                 @movieuz_kino_bot
-                """.formatted(movie.getCaption(), movie.getDownload(), averageStars, movie.getAddedDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                """.formatted(movie.getCaption(),
+                movie.getDownload(),
+                movie.getAvgRate(),
+                movie.getAddedDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                movie.getCode());
     }
 }

@@ -12,7 +12,10 @@ public interface Message {
             """;
 
     String thankForRatingMsg = """
-            ⭐ Filmga baho berganingiz uchun katta rahmat! Sizning fikringiz biz uchun juda muhim.
+            ⭐ Filmga baho berganingiz uchun katta rahmat!
+            """;
+    String allReadyRatingMsg = """
+            Siz bu filmni avval baholagansiz!
             """;
 
     String movieNotFoundMsg = """
@@ -23,6 +26,9 @@ public interface Message {
             🎬 Assalomu alaykum! Iltimos, sizga kerakli film kodini yuboring.
             """;
 
+    String disconnectedMsg = """
+            Kanal uzildi ✔️.
+            """;
 
     // ===================== Admin commands =====================
     String welcomeAdminMsg = """
@@ -50,7 +56,7 @@ public interface Message {
             """;
 
     String movieDataNotFoundMsg = """
-            ❌ Xatolik: Kiritilgan kod bo‘yicha film ma’lumotlari topilmadi. Ehtimol, kod noto‘g‘ri yoki film o‘chirilgan.
+            ❌ Kiritilgan kod bo‘yicha film ma’lumotlari topilmadi. Ehtimol, kod noto‘g‘ri yoki film o‘chirilgan.
             """;
 
     String movieRemovedMsg = """
@@ -67,6 +73,9 @@ public interface Message {
 
     String channelNotConnectedBotNotAdminMsg = """
             ⚠️ Kanalni ulab bo‘lmadi, chunki bot u yerda admin emas. Iltimos, botni kanalingizga admin qilib qo‘shing.
+            """;
+    String channelNotFound = """
+            ⚠️ Sizda ulangan kanallar mavjud emas
             """;
 
     String channelConnectionErrorMsg = """
@@ -116,7 +125,7 @@ public interface Message {
 
     // ===================== General messages =====================
     String unknownCommandMsg = """
-            ❓ Kechirasiz, siz kiritgan buyruq tanilmadi. Buyruqlar ro‘yxatini ko‘rish uchun /help ni bosing.
+            ❓ Kechirasiz, siz kiritgan buyruq tanilmadi.
             """;
 
     String unknownStateMsg = """

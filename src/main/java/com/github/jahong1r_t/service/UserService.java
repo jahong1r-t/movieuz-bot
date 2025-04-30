@@ -1,20 +1,30 @@
 package com.github.jahong1r_t.service;
 
-import com.github.jahong1r_t.entity.*;
+import com.github.jahong1r_t.entity.Movie;
+import com.github.jahong1r_t.entity.User;
 import com.github.jahong1r_t.entity.enums.State;
+import com.github.jahong1r_t.repository.ChannelsRepository;
+import com.github.jahong1r_t.repository.MoviesRepository;
+import com.github.jahong1r_t.repository.UserRepository;
 import com.github.jahong1r_t.utils.Message;
 import com.github.jahong1r_t.utils.Utils;
 import lombok.SneakyThrows;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.Set;
 
-import static com.github.jahong1r_t.db.Datasource.*;
+import static com.github.jahong1r_t.db.Datasource.stateMap;
 import static com.github.jahong1r_t.utils.Keyboard.stars;
 import static com.github.jahong1r_t.utils.Keyboard.stars_data;
 
 public class UserService {
+    private final UserRepository userRepository = new UserRepository();
+    private final MoviesRepository moviesRepository = new MoviesRepository();
+    private final ChannelsRepository channelsRepository = new ChannelsRepository();
 
+    /// 100% done | checked
     @SneakyThrows
     public void service(Update update, Utils utils) {
         Long chatId = update.getMessage().getChatId();
@@ -23,73 +33,71 @@ public class UserService {
         State current = stateMap.getOrDefault(chatId, State.MAIN);
 
         if (current == State.MAIN) {
-            if (!channels.isEmpty()) {
-                if (!utils.isChatMember(chatId, channels)) {
-                    utils.sendMessage(chatId, Message.welcomeUserMsg, utils.inlineKeyboardWithLink(channels));
-                    return;
-                }
+
+            Set<String> channels = channelsRepository.getAllChannel();
+
+            if (!channels.isEmpty() && !utils.isChatMember(chatId, channels)) {
+                utils.sendMessage(chatId, Message.welcomeUserMsg, utils.inlineKeyboardWithLink(channels));
+                return;
             }
 
             if (text.equals("/start")) {
-                users.putIfAbsent(chatId, User.builder()
-                        .id(chatId)
-                        .username(update.getMessage().getFrom().getUserName() != null ? update.getMessage().getFrom().getUserName() : "Nomalum")
-                        .fullName(update.getMessage().getFrom().getFirstName() + " " + (update.getMessage().getFrom().getLastName() != null ? update.getMessage().getFrom().getLastName() : ""))
-                        .joinDate(LocalDateTime.now())
-                        .lastActivity(LocalDateTime.now())
-                        .requestCount(0)
-                        .build());
+                if (!userRepository.isExist(chatId)) {
+                    User user = User.builder()
+                            .id(chatId)
+                            .username(update.getMessage().getFrom().getUserName() != null
+                                    ? update.getMessage().getFrom().getUserName()
+                                    : "Nomalum")
+                            .fullName(update.getMessage().getFrom().getFirstName() + " " +
+                                    (update.getMessage().getFrom().getLastName() != null
+                                            ? update.getMessage().getFrom().getLastName()
+                                            : ""))
+                            .joinDate(LocalDateTime.now())
+                            .lastActivity(LocalDateTime.now())
+                            .requestCount(0)
+                            .build();
+                    userRepository.insertUser(user);
+                }
 
                 utils.sendMessage(chatId, Message.promptMovieCodeMsg);
-            } else {
-                findMovie(text, utils, chatId);
+                return;
             }
+            findMovie(text, utils, chatId);
         }
     }
 
+    /// 100% done | checked
     @SneakyThrows
     private void findMovie(String text, Utils utils, Long chatId) {
-        Movie movie = movies.get(text);
-        if (movie != null) {
-            utils.sendVideo(chatId, captionBuilder(movie), movie.getFileId(), utils.inlineKeyboard(stars, stars_data(movie.getCode())));
+        Optional<Movie> movieByCode = moviesRepository.getMovieByCode(text);
 
-            User user = users.get(chatId);
+        if (movieByCode.isPresent()) {
+            Movie movie = movieByCode.get();
+            utils.sendVideo(chatId, captionBuilder(movie), movie.getFileId(),
+                    utils.inlineKeyboard(stars, stars_data(movie.getCode())));
 
-            user.setRequestCount(user.getRequestCount() + 1);
-            user.setLastActivity(LocalDateTime.now());
-            movie.setDownload(movie.getDownload() + 1);
+            userRepository.updateUserRequestCountById(chatId, LocalDateTime.now());
+            moviesRepository.updateMovieDownload(text);
+
         } else {
-            utils.sendMessage(chatId, Message.movieNotFoundMsg);
+            utils.sendMessage(chatId, Message.movieDataNotFoundMsg);
         }
     }
 
-    @SneakyThrows
+    /// 100% done | unchecked
     private String captionBuilder(Movie movie) {
-        String averageStars;
-
-        if (movie.getStars().isEmpty()) {
-            averageStars = "Film uchun baholar qoldirilmagan";
-        } else {
-            double average = movie.getStars().stream()
-                    .mapToInt(Integer::intValue)
-                    .average()
-                    .orElse(0.0);
-
-            averageStars = String.format("%.1f", average);
-        }
-
         return """
                 🎬 %s
                 
                 📥 Yuklab olingan: %d ta
                 ⭐ O‘rtacha baho: %s
                 
-                P/S: Filmni 1 dan 5 gacha  baholashni unitmang 👇
+                P/S: Filmni 1 dan 5 gacha baholashni unitmang 👇
                 @movieuz_kino_bot
                 """.formatted(
                 movie.getCaption(),
                 movie.getDownload(),
-                averageStars
+                movie.getAvgRate()
         );
     }
 }

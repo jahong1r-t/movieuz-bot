@@ -20,7 +20,7 @@ public class MainBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage()) {
-            if (update.getMessage().getChatId().equals(BOT_ADMIN)) {
+            if (update.getMessage().getChatId().equals(BOT_ADMIN_1) || update.getMessage().getChatId().equals(BOT_ADMIN_2)) {
                 adminService.service(update, utils);
             } else {
                 userService.service(update, utils);

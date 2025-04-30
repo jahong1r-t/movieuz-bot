@@ -3,6 +3,9 @@ package com.github.jahong1r_t.service;
 import com.github.jahong1r_t.entity.Movie;
 import com.github.jahong1r_t.entity.User;
 import com.github.jahong1r_t.entity.enums.State;
+import com.github.jahong1r_t.repository.ChannelsRepository;
+import com.github.jahong1r_t.repository.MoviesRepository;
+import com.github.jahong1r_t.repository.UserRepository;
 import com.github.jahong1r_t.utils.Utils;
 import lombok.SneakyThrows;
 import org.telegram.telegrambots.meta.api.objects.*;
@@ -14,12 +17,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 import static com.github.jahong1r_t.db.Datasource.*;
 import static com.github.jahong1r_t.utils.Keyboard.*;
 import static com.github.jahong1r_t.utils.Message.*;
 
 public class AdminService {
+    private final UserRepository userRepository = new UserRepository();
+    private final MoviesRepository moviesRepository = new MoviesRepository();
+    private final ChannelsRepository channelsRepository = new ChannelsRepository();
     private static Movie movieHolder = null;
 
     @SneakyThrows
@@ -44,6 +51,7 @@ public class AdminService {
             case "/start" -> utils.sendMessage(chatId, welcomeAdminMsg, utils.keyboard(main_admin_keyboard));
             case statisticsCmd -> utils.sendMessage(chatId, getStatistics());
             case movieListCmd -> sendAllMovies(utils, chatId);
+            case channelListCmd -> channelList(utils, chatId);
             case newMovieCmd -> {
                 stateMap.put(chatId, State.NEW_MOVIE);
                 utils.sendMessage(chatId, promptMovieUploadMsg);
@@ -87,7 +95,7 @@ public class AdminService {
                 .caption(caption)
                 .download(0)
                 .addedDate(LocalDateTime.now())
-                .stars(new ArrayList<>())
+                .avgRate(0.0)
                 .build();
 
         stateMap.put(chatId, State.MOVIE_CODE);
@@ -116,9 +124,10 @@ public class AdminService {
             return;
         }
 
-        if (!movies.containsKey(code)) {
+
+        if (!moviesRepository.isExist(code)) {
             movieHolder.setCode(code);
-            movies.put(code, movieHolder);
+            moviesRepository.insertMovie(movieHolder);
             utils.sendMessage(chatId, movieAddedMsg);
             stateMap.put(chatId, State.MAIN);
             movieHolder = null;
@@ -142,26 +151,27 @@ public class AdminService {
         }
 
         String channelLink = message.getText();
-        channels.add(channelLink);
+
+        channelsRepository.insertChannel(channelLink);
 
         try {
-            if (utils.isBotAdmin(channels)) {
+            if (utils.isBotAdmin(channelsRepository.getAllChannel())) {
                 utils.sendMessage(chatId, channelConnectedMsg);
                 stateMap.put(chatId, State.MAIN);
             } else {
-                channels.remove(channelLink);
+                channelsRepository.deleteChannel(channelLink);
                 utils.sendMessage(chatId, channelNotConnectedBotNotAdminMsg);
             }
         } catch (Exception e) {
-            channels.remove(channelLink);
-            utils.sendMessage(chatId, String.format(channelConnectionErrorMsg, e.getMessage()));
-            System.err.println("Channel connection error: " + e.getMessage());
+            channelsRepository.deleteChannel(channelLink);
+            utils.sendMessage(chatId, String.format(channelNotConnectedBotNotAdminMsg));
         }
     }
 
     @SneakyThrows
     private void handleSendMessageToAllState(Update update, Utils utils, Long chatId) {
         Message message = update.getMessage();
+        List<User> users = userRepository.getAllUsers();
 
         if (message.hasText()) {
             String text = message.getText();
@@ -182,38 +192,38 @@ public class AdminService {
         boolean sent = false;
 
         if (message.hasText()) {
-            users.forEach((id, user) -> utils.sendMessage(id, message.getText(), markup));
+            users.forEach((u) -> utils.sendMessage(u.getId(), message.getText(), markup));
             utils.sendMessage(chatId, broadcastTextSentMsg);
             sent = true;
         } else if (message.hasPhoto()) {
             List<PhotoSize> photos = message.getPhoto();
             String fileId = photos.get(photos.size() - 1).getFileId();
-            users.forEach((id, user) -> utils.sendPhoto(id, fileId, message.getCaption(), markup));
+            users.forEach((u) -> utils.sendPhoto(u.getId(), fileId, message.getCaption(), markup));
             utils.sendMessage(chatId, broadcastPhotoSentMsg);
             sent = true;
         } else if (message.hasVideo()) {
             Video video = message.getVideo();
-            users.forEach((id, user) -> utils.sendVideo(id, video.getFileId(), message.getCaption(), markup));
+            users.forEach((u) -> utils.sendVideo(u.getId(), video.getFileId(), message.getCaption(), markup));
             utils.sendMessage(chatId, broadcastVideoSentMsg);
             sent = true;
         } else if (message.hasDocument()) {
             Document document = message.getDocument();
-            users.forEach((id, user) -> utils.sendDocument(id, document.getFileId(), message.getCaption(), markup));
+            users.forEach((u) -> utils.sendDocument(u.getId(), document.getFileId(), message.getCaption(), markup));
             utils.sendMessage(chatId, broadcastDocumentSentMsg);
             sent = true;
         } else if (message.hasAudio()) {
             Audio audio = message.getAudio();
-            users.forEach((id, user) -> utils.sendAudio(id, audio.getFileId(), message.getCaption(), markup));
+            users.forEach((u) -> utils.sendAudio(u.getId(), audio.getFileId(), message.getCaption(), markup));
             utils.sendMessage(chatId, broadcastAudioSentMsg);
             sent = true;
         } else if (message.hasVoice()) {
             Voice voice = message.getVoice();
-            users.forEach((id, user) -> utils.sendVoice(id, voice.getFileId(), markup));
+            users.forEach((u) -> utils.sendVoice(u.getId(), voice.getFileId(), markup));
             utils.sendMessage(chatId, broadcastVoiceSentMsg);
             sent = true;
         } else if (message.hasSticker()) {
             Sticker sticker = message.getSticker();
-            users.forEach((id, user) -> utils.sendSticker(id, sticker.getFileId()));
+            users.forEach((u) -> utils.sendSticker(u.getId(), sticker.getFileId()));
             utils.sendMessage(chatId, broadcastStickerSentMsg);
             sent = true;
         }
@@ -225,13 +235,43 @@ public class AdminService {
         }
     }
 
+    @SneakyThrows
     private boolean isCommand(String text) {
         return text.equals("/start") ||
                 text.equals(statisticsCmd) ||
                 text.equals(movieListCmd) ||
                 text.equals(newMovieCmd) ||
                 text.equals(connectChannelCmd) ||
+                text.equals(channelListCmd) ||
                 text.equals(sendToAllCmd);
+    }
+
+    @SneakyThrows
+    private void channelList(Utils utils, Long chatId) {
+        StringBuilder textBuilder = new StringBuilder();
+        Set<String> channelsSet = channelsRepository.getAllChannel();
+
+        if (channelsSet.isEmpty()) {
+            utils.sendMessage(chatId, channelNotFound);
+            return;
+        }
+
+        List<String> channels = new ArrayList<>(channelsSet);
+        int size = channels.size();
+
+        String[][] buttons = new String[size][1];
+        String[][] data = new String[size][1];
+
+        textBuilder.append("Ulangan kanallar ro'yxati 📃\n\n");
+
+        for (int i = 0; i < size; i++) {
+            buttons[i][0] = String.valueOf(i + 1);
+            data[i][0] = channels.get(i);
+            textBuilder.append(i + 1).append(". ").append(channels.get(i)).append("\n");
+        }
+        textBuilder.append("\n\n⚠️ Kanalni uzish uchun tanlang 👇");
+
+        utils.sendMessage(chatId, textBuilder.toString(), utils.inlineKeyboard(buttons, data));
     }
 
     @SneakyThrows
@@ -239,42 +279,26 @@ public class AdminService {
         StringBuilder sb = new StringBuilder("📊 Statistik ma'lumotlar:\n\n");
 
         sb.append("👥 Foydalanuvchilar:\n");
-        sb.append("• Jami ro'yxatdan o'tgan foydalanuvchilar: ").append(users.size()).append(" ta\n");
+        sb.append("• Jami ro'yxatdan o'tgan foydalanuvchilar: ")
+                .append(userRepository.countTotalUsers()).append(" ta\n");
+        sb.append("• So'nggi 7 kun ichida faol bo'lganlar: ")
+                .append(userRepository.countActiveUsers()).append(" ta\n");
+        sb.append("• Bugun ro'yxatdan o'tgan foydalanuvchilar: ")
+                .append(userRepository.countNewUsers()).append(" ta\n");
 
-        long activeUsers = users.values().stream()
-                .filter(u -> u.getLastActivity() != null &&
-                        u.getLastActivity().isAfter(LocalDateTime.now().minusDays(7)))
-                .count();
-        sb.append("• So'nggi 7 kun ichida faol bo'lganlar: ").append(activeUsers).append(" ta\n");
-
-        long newUsers = users.values().stream()
-                .filter(u -> u.getJoinDate() != null &&
-                        u.getJoinDate().isAfter(LocalDateTime.now().minusDays(1)))
-                .count();
-        sb.append("• Bugun ro'yxatdan o'tgan foydalanuvchilar: ").append(newUsers).append(" ta\n");
-
-        users.values().stream()
-                .max(Comparator.comparingInt(User::getRequestCount))
-                .ifPresent(user -> sb.append("• Eng faol foydalanuvchi: ")
-                        .append(user.getUsername() != null
-                                ? "@" + user.getUsername()
-                                : "User#" + user.getId())
-                        .append(" — ").append(user.getRequestCount()).append(" ta so'rov yuborgan\n"));
+        userRepository.findMostActiveUser().ifPresent(user ->
+                sb.append("• Eng faol foydalanuvchi: ")
+                        .append(user.getUsername() != null ? "@" + user.getUsername() : "User#" + user.getId())
+                        .append(" — ").append(user.getRequestCount()).append(" ta so'rov yuborgan\n")
+        );
 
         sb.append("\n🎬 Filmlar:\n");
-        sb.append("• Jami yuklangan filmlar: ").append(movies.size()).append(" ta\n");
+        sb.append("• Jami yuklangan filmlar: ")
+                .append(moviesRepository.countTotalMovies()).append(" ta\n");
+        sb.append("• Umumiy yuklanishlar soni: ")
+                .append(moviesRepository.sumTotalDownloads()).append(" ta\n");
 
-        long totalDownloads = movies.values().stream()
-                .mapToLong(m -> m.getDownload() != null ? m.getDownload() : 0)
-                .sum();
-        sb.append("• Umumiy yuklanishlar soni: ").append(totalDownloads).append(" ta\n");
-
-        List<Movie> topMovies = movies.values().stream()
-                .filter(m -> m.getDownload() != null)
-                .sorted(Comparator.comparingInt(Movie::getDownload).reversed())
-                .limit(3)
-                .toList();
-
+        List<Movie> topMovies = moviesRepository.findTopDownloadedMovies(3);
         sb.append("• Eng ko'p yuklangan 3 ta film:\n");
         for (int i = 0; i < 3; i++) {
             if (i < topMovies.size()) {
@@ -286,36 +310,20 @@ public class AdminService {
             }
         }
 
-        Movie topRatedMovie = movies.values().stream()
-                .filter(m -> m.getStars() != null && !m.getStars().isEmpty())
-                .max(Comparator.comparingDouble(m ->
-                        m.getStars().stream().mapToDouble(Integer::doubleValue).average().orElse(0.0)))
-                .orElse(null);
+        moviesRepository.findTopRatedMovie().ifPresent(movie ->
+                sb.append("• Eng yuqori baholangan film: ")
+                        .append(movie.getCaption())
+                        .append(" — O'rtacha ").append(String.format("%.1f", movie.getAvgRate()))
+                        .append(" yulduz\n")
+        );
 
-        if (topRatedMovie != null) {
-            double avgRating = topRatedMovie.getStars().stream()
-                    .mapToDouble(Integer::doubleValue).average().orElse(0.0);
-            sb.append("• Eng yuqori baholangan film: ")
-                    .append(topRatedMovie.getCaption())
-                    .append(" — O'rtacha ").append(String.format("%.1f", avgRating)).append(" yulduz\n");
-        } else {
-            sb.append("• Eng yuqori baholangan film: Ma'lumot mavjud emas\n");
-        }
-
-        Movie latestMovie = movies.values().stream()
-                .filter(m -> m.getAddedDate() != null)
-                .max(Comparator.comparing(Movie::getAddedDate))
-                .orElse(null);
-
-        if (latestMovie != null) {
-            sb.append("• Eng so'nggi qo'shilgan film: ")
-                    .append(latestMovie.getCaption())
-                    .append(" (")
-                    .append(latestMovie.getAddedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm")))
-                    .append(")\n");
-        } else {
-            sb.append("• Eng so'nggi qo'shilgan film: Ma'lumot mavjud emas\n");
-        }
+        moviesRepository.findLatestMovie().ifPresent(movie ->
+                sb.append("• Eng so'nggi qo'shilgan film: ")
+                        .append(movie.getCaption())
+                        .append(" (")
+                        .append(movie.getAddedDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm")))
+                        .append(")\n")
+        );
 
         return sb.toString();
     }
@@ -324,8 +332,9 @@ public class AdminService {
     private void sendAllMovies(Utils utils, Long chatId) {
         ArrayList<String> messagePerPage = new ArrayList<>();
         ArrayList<String> data = new ArrayList<>();
+        List<Movie> movies = moviesRepository.getAllMovies();
 
-        List<Movie> sortedMovies = movies.values().stream()
+        List<Movie> sortedMovies = movies.stream()
                 .sorted(Comparator.comparing(Movie::getAddedDate, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
 
