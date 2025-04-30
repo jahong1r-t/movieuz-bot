@@ -1,38 +1,10 @@
 package com.github.jahong1r_t.utils;
 
-import lombok.SneakyThrows;
-import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.GetMe;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-public class BotConfig {
-    public String BOT_TOKEN;
-    public String BOT_USERNAME;
-    public Long BOT_ADMIN = 5699941692L;
-
-
-
-
-    public BotConfig() {
-        try (InputStream input = getClass().getClassLoader().getResourceAsStream("application.properties")) {
-            if (input == null) {
-                throw new IllegalStateException("application.properties not found in classpath");
-            }
-            Properties properties = new Properties();
-            properties.load(input);
-            this.BOT_TOKEN = properties.getProperty("bot.token");
-            this.BOT_USERNAME = properties.getProperty("bot.username");
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
-        }
-
-    }
+public interface BotConfig {
+    String BOT_TOKEN = System.getenv("BOT_TOKEN");
+    String BOT_USERNAME = System.getenv("BOT_USERNAME");
+    Long BOT_ADMIN = Long.parseLong(System.getenv("BOT_ADMIN"));
+    String DB_URL = System.getenv("DB_URL");
+    String DB_USER = System.getenv("DB_USER");
+    String DB_PASS = System.getenv("DB_PASSWORD");
 }

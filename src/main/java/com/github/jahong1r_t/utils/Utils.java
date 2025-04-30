@@ -1,14 +1,13 @@
 package com.github.jahong1r_t.utils;
 
-import com.github.jahong1r_t.entity.Movie;
 import com.github.jahong1r_t.exceptions.BotNotAdminException;
 import com.github.jahong1r_t.exceptions.InvalidChannelLinkException;
+import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
-import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
-import org.telegram.telegrambots.meta.api.methods.GetMe;
+import org.telegram.telegrambots.meta.api.methods.*;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatMember;
 import org.telegram.telegrambots.meta.api.methods.send.*;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.User;
@@ -19,6 +18,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
 import java.util.ArrayList;
@@ -28,13 +28,59 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.github.jahong1r_t.utils.Keyboard.stars;
 
+@AllArgsConstructor
 public class Utils {
-    private final TelegramLongPollingBot bot;
+    private final AbsSender bot;
+    private static final SendMessage sendMessage = new SendMessage();
+    private static final SendVideo sendVideo = new SendVideo();
+    private static final DeleteMessage deleteMessage = new DeleteMessage();
+    private static final InputFile inputFile = new InputFile();
+    private static final ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+    private static final InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+    private static final AnswerCallbackQuery answerCallbackQuery = new AnswerCallbackQuery();
 
-    public Utils(TelegramLongPollingBot bot) {
-        this.bot = bot;
+    @SneakyThrows
+    public void sendMessage(Long chatId, String text) {
+        sendMessage.setChatId(chatId);
+        sendMessage.setText(text);
+        bot.execute(sendMessage);
+
+    }
+
+    @SneakyThrows
+    public void sendMessage(Long chatId, String text, ReplyKeyboard replyKeyboard) {
+        sendMessage.setChatId(chatId);
+        sendMessage.setText(text);
+        sendMessage.setReplyMarkup(replyKeyboard);
+        bot.execute(sendMessage);
+    }
+
+    @SneakyThrows
+    public void sendVideo(Long chatId, String caption, String fileId, ReplyKeyboard replyKeyboard) {
+        sendVideo.setChatId(chatId);
+        sendVideo.setCaption(caption);
+        sendVideo.setVideo(inputFile.setMedia(fileId));
+        sendVideo.setReplyMarkup(replyKeyboard);
+        bot.execute(sendVideo);
+    }
+
+    @SneakyThrows
+    public void deleteMessage(Long chatId, Integer messageId) {
+        deleteMessage.setChatId(chatId);
+        deleteMessage.setMessageId(messageId);
+        bot.execute(deleteMessage);
+    }
+
+    @SneakyThrows
+    public void answerCallbackQuery(String id, String text, boolean showAlert) {
+        AnswerCallbackQuery build = AnswerCallbackQuery.builder()
+                .callbackQueryId(id)
+                .text(text)
+                .showAlert(showAlert)
+                .build();
+
+        bot.execute(build);
     }
 
     @SneakyThrows
@@ -47,15 +93,14 @@ public class Utils {
                 })
                 .collect(Collectors.toList());
 
-        return ReplyKeyboardMarkup.builder()
-                .keyboard(rows)
-                .resizeKeyboard(true)
-                .build();
+        replyKeyboardMarkup.setKeyboard(rows);
+        replyKeyboardMarkup.setResizeKeyboard(true);
+
+        return replyKeyboardMarkup;
     }
 
     @SneakyThrows
     public ReplyKeyboard inlineKeyboard(String[][] buttons, String[][] data) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
 
         List<List<InlineKeyboardButton>> rows =
                 IntStream.range(0, buttons.length)
@@ -73,7 +118,6 @@ public class Utils {
     }
 
     public InlineKeyboardMarkup inlineKeyboardWithLink(Set<String> urls) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
         int index = 1;
@@ -225,56 +269,6 @@ public class Utils {
         return InlineKeyboardMarkup.builder().keyboard(keyboard).build();
     }
 
-
-    @SneakyThrows
-    public void sendMessage(Long chatId, String message) {
-        bot.execute(SendMessage.builder()
-                .chatId(chatId)
-                .text(message)
-                .build());
-    }
-
-    @SneakyThrows
-    public void sendVideo(Long chatId, Movie movie) {
-        String averageStars = calculateAverageStars(movie.getStars());
-
-        String caption = """
-                🎬 %s
-                
-                📥 Yuklab olingan: %d ta
-                ⭐ O‘rtacha baho: %s
-                
-                P/S: Filmni 1 dan 5 gacha  baholashni unitmang 👇
-                @movieuz_kino_bot
-                """.formatted(
-                movie.getCaption(),
-                movie.getDownload(),
-                averageStars
-        );
-
-        bot.execute(SendVideo.builder()
-                .chatId(chatId)
-                .video(new InputFile(movie.getFileId()))
-                .caption(caption)
-                .replyMarkup(inlineKeyboard(stars, new String[][]{
-                        {"cd_" + movie.getCode() + "_1", "cd_" + movie.getCode() + "_2", "cd_" + movie.getCode() + "_3", "cd_" + movie.getCode() + "_4", "cd_" + movie.getCode() + "_5"},
-                }))
-                .build());
-    }
-
-    private String calculateAverageStars(List<Integer> stars) {
-        if (stars == null || stars.isEmpty()) {
-            return "Yo‘q";
-        }
-        double average = stars.stream()
-                .mapToInt(Integer::intValue)
-                .average()
-                .orElse(0.0);
-
-        return String.format("%.1f", average);
-    }
-
-
     @SneakyThrows
     public boolean isBotAdmin(Set<String> chats) {
         User botUser = bot.execute(new GetMe());
@@ -292,15 +286,6 @@ public class Utils {
             }
         }
         return true;
-    }
-
-    @SneakyThrows
-    public void sendMessage(Long chatId, String message, ReplyKeyboard replyKeyboard) {
-        bot.execute(SendMessage.builder()
-                .chatId(chatId)
-                .text(message)
-                .replyMarkup(replyKeyboard)
-                .build());
     }
 
     @SneakyThrows
@@ -358,7 +343,6 @@ public class Utils {
         return "https://t.me/" + link;
     }
 
-
     @SneakyThrows
     public void sendMessage(Long chatId, String text, InlineKeyboardMarkup markup) {
         SendMessage sendMessage = new SendMessage();
@@ -394,6 +378,7 @@ public class Utils {
         bot.execute(sendVideo);
     }
 
+
     @SneakyThrows
     public void sendDocument(Long chatId, String fileId, String caption, InlineKeyboardMarkup markup) {
         SendDocument sendDocument = new SendDocument();
@@ -419,7 +404,7 @@ public class Utils {
     }
 
     @SneakyThrows
-    public void sendVoice(Long chatId, String fileId, InlineKeyboardMarkup markup) {
+    public void sendVoice(Long chatId, String fileId, ReplyKeyboard markup) {
         SendVoice sendVoice = new SendVoice();
         sendVoice.setChatId(chatId.toString());
         sendVoice.setVoice(new InputFile(fileId));
@@ -436,5 +421,4 @@ public class Utils {
         sendSticker.setSticker(new InputFile(fileId));
         bot.execute(sendSticker);
     }
-
 }

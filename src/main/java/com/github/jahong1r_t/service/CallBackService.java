@@ -1,0 +1,158 @@
+package com.github.jahong1r_t.service;
+
+import com.github.jahong1r_t.entity.Movie;
+import com.github.jahong1r_t.entity.enums.State;
+import com.github.jahong1r_t.utils.Message;
+import com.github.jahong1r_t.utils.Utils;
+import lombok.SneakyThrows;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+
+import java.time.format.DateTimeFormatter;
+
+import static com.github.jahong1r_t.db.Datasource.*;
+import static com.github.jahong1r_t.utils.Keyboard.admin_tools;
+import static com.github.jahong1r_t.utils.Keyboard.admin_tools_data;
+
+public class CallBackService {
+
+    @SneakyThrows
+    public void service(CallbackQuery callbackQuery, Utils utils) {
+        String data = callbackQuery.getData();
+        String id = callbackQuery.getId();
+        Long chatId = callbackQuery.getFrom().getId();
+        Integer messageId = callbackQuery.getMessage().getMessageId();
+
+        if (data.equals("check")) {
+            check(id, chatId, messageId, utils);
+        } else if (data.startsWith("page")) {
+            pagination();
+        } else if (data.startsWith("tool")) {
+            tools(data, chatId, utils);
+        } else if (data.startsWith("rate")) {
+            rate(data, utils);
+        } else {
+            getMovie(data, chatId, utils);
+        }
+    }
+
+    @SneakyThrows
+    private void check(String id, Long chatId, Integer messageId, Utils utils) {
+        if (utils.isChatMember(chatId, channels)) {
+            utils.deleteMessage(chatId, messageId);
+            utils.sendMessage(chatId, Message.promptMovieCodeMsg);
+        } else {
+            utils.answerCallbackQuery(id, Message.notFollowedChannelsMsg, true);
+        }
+    }
+
+    @SneakyThrows
+    private void pagination() {
+//        String pageData = data.replace("page:", "");
+//        int newPage;
+//        try {
+//            newPage = Integer.parseInt(pageData);
+//        } catch (NumberFormatException e) {
+//            utils.sendMessage(chatId, "Noto'g'ri sahifa raqami.");
+//            return;
+//        }
+//
+//        ArrayList<String> messagePerPage = new ArrayList<>();
+//        ArrayList<String> data = new ArrayList<>();
+//
+//        List<Movie> sortedMovies = movies.values().stream().sorted(Comparator.comparing(Movie::getCaption)).toList();
+//
+//        StringBuilder pageBuilder = new StringBuilder();
+//        int movieCount = 0;
+//
+//        for (Movie movie : sortedMovies) {
+//            if (movieCount > 0 && movieCount % 10 == 0) {
+//                messagePerPage.add(pageBuilder.toString());
+//                pageBuilder = new StringBuilder();
+//            }
+//
+//            String caption = movie.getCaption() != null ? movie.getCaption() : "Noma'lum";
+//            String addedDate = movie.getAddedDate() != null ? movie.getAddedDate().toLocalDate().toString() : "Noma'lum";
+//
+//            pageBuilder.append(movieCount + 1).append(". ").append(caption).append(" (").append(addedDate).append(").\n");
+//
+//            data.add(movie.getFileId() != null ? movie.getFileId() : "");
+//
+//            movieCount++;
+//        }
+//
+//        if (!pageBuilder.isEmpty()) {
+//            messagePerPage.add(pageBuilder.toString());
+//        }
+//
+//        if (messagePerPage.isEmpty()) {
+//            messagePerPage.add("Filmlar topilmadi (Hozircha hech qanday film mavjud emas)");
+//            data.add("");
+//        }
+//
+//        if (newPage < 1 || newPage > messagePerPage.size()) {
+//            utils.sendMessage(chatId, "Noto'g'ri sahifa raqami.");
+//            return;
+//        }
+
+//        utils.sendPaginationKeyboard(chatId, , , , messageId, id);
+    }
+
+    @SneakyThrows
+    private void tools(String data, Long chatId, Utils utils) {
+        String[] split = data.split(":");
+
+        String code = split[1];
+        if (split[2].equals("edit")) {
+            movies.remove(code);
+            stateMap.put(chatId, State.NEW_MOVIE);
+            utils.sendMessage(chatId, Message.promptMovieUploadMsg);
+        } else if (split[2].equals("delete")) {
+            movies.remove(code);
+            utils.sendMessage(chatId, Message.movieRemovedMsg);
+        }
+    }
+
+    @SneakyThrows
+    private void rate(String data, Utils utils) {
+        String[] parts = data.split(":");
+        String code = parts[1];
+        int star = Integer.parseInt(parts[2]);
+
+        movies.get(code).getStars().add(star);
+        utils.answerCallbackQuery(code, Message.thankForRatingMsg, false);
+    }
+
+    @SneakyThrows
+    private void getMovie(String data, Long chatId, Utils utils) {
+        Movie movie = movies.get(data);
+        if (movie != null) {
+            utils.sendVideo(chatId, captionBuilder(movie), movie.getFileId(),
+                    utils.inlineKeyboard(admin_tools, admin_tools_data(movie.getCode())));
+        } else {
+            utils.sendMessage(chatId, Message.movieNotFoundMsg);
+        }
+    }
+
+    @SneakyThrows
+    private String captionBuilder(Movie movie) {
+        String averageStars;
+
+        if (movie.getStars().isEmpty()) {
+            averageStars = "Film uchun baholar qoldirilmagan";
+        } else {
+            double average = movie.getStars().stream().mapToInt(Integer::intValue).average().orElse(0.0);
+
+            averageStars = String.format("%.1f", average);
+        }
+
+        return """
+                🎬 %s
+                
+                📥 Yuklab olingan: %d ta
+                ⭐ O‘rtacha baho: %s
+                📅 Yuklangan sana: %s
+                
+                @movieuz_kino_bot
+                """.formatted(movie.getCaption(), movie.getDownload(), averageStars, movie.getAddedDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+    }
+}

@@ -13,7 +13,7 @@ target/
 *.ipr
 .idea
 
-src/main/resources/application.properties
+.env
 
 ### Eclipse ###
 .apt_generated
