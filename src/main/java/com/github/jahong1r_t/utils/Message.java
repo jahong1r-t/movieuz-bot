@@ -2,7 +2,6 @@ package com.github.jahong1r_t.utils;
 
 public interface Message {
 
-    // ===================== User-related messages =====================
     String welcomeUserMsg = """
             👋 Assalomu alaykum! Botdan to‘liq foydalanish uchun quyidagi kanallarga obuna bo‘ling. Obuna bo‘lganingizdan so‘ng, “✅ Tekshirish” tugmasini bosing.
             """;
