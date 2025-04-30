@@ -68,7 +68,7 @@ public interface Message {
             """;
 
     String channelConnectedMsg = """
-            ✅ Kanal botga muvaffaqiyatli ulandi. Endi ushbu kanal orqali foydalanuvchilarga xizmat ko‘rsatiladi.
+            ✅ Kanal botga muvaffaqiyatli ulandi. Endi foydalanuvchidan ushbu kanalga a'zo bo'lishi so'raladi.
             """;
 
     String channelNotConnectedBotNotAdminMsg = """
