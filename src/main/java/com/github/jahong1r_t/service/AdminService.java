@@ -14,10 +14,7 @@ import org.telegram.telegrambots.meta.api.objects.stickers.Sticker;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static com.github.jahong1r_t.db.Datasource.*;
 import static com.github.jahong1r_t.utils.Keyboard.*;
@@ -310,10 +307,10 @@ public class AdminService {
             }
         }
 
-        moviesRepository.findTopRatedMovie().ifPresent(movie ->
+        moviesRepository.findMostRatedAndTopMovie().ifPresent(movie ->
                 sb.append("• Eng yuqori baholangan film: ")
                         .append(movie.getCaption())
-                        .append(" — O'rtacha ").append(String.format("%.1f", movie.getAvgRate()))
+                        .append(" — O'rtacha").append(String.format("%.1f", movie.getAvgRate()))
                         .append(" yulduz\n")
         );
 

@@ -160,24 +160,26 @@ public class MoviesRepository {
     }
 
     @SneakyThrows
-    public Optional<Movie> findTopRatedMovie() {
-        String sql = "SELECT m.code, m.caption, AVG(r.rating) AS avg_rate " +
-                "FROM movies m LEFT JOIN movie_rates r ON m.code = r.movie_code " +
+    public Optional<Movie> findMostRatedAndTopMovie() {
+        String sql = "SELECT m.code, m.caption, COUNT(r.rating) AS rating_count, AVG(r.rating) AS avg_rating " +
+                "FROM movies m " +
+                "JOIN movie_rates r ON m.code = r.movie_code " +
                 "GROUP BY m.code, m.caption " +
-                "ORDER BY avg_rate DESC LIMIT 1";
+                "ORDER BY rating_count DESC, avg_rating DESC LIMIT 1";
         try (PreparedStatement ps = connection().prepareStatement(sql)) {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(Movie.builder()
                             .code(rs.getString("code"))
                             .caption(rs.getString("caption"))
-                            .avgRate(rs.getDouble("avg_rate"))
+                            .avgRate(rs.getDouble("avg_rating"))
                             .build());
                 }
                 return Optional.empty();
             }
         }
     }
+
 
     @SneakyThrows
     public Optional<Movie> findLatestMovie() {
