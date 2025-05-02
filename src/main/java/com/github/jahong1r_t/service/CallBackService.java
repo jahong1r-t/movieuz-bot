@@ -1,14 +1,17 @@
 package com.github.jahong1r_t.service;
 
 import com.github.jahong1r_t.entity.Movie;
+import com.github.jahong1r_t.entity.User;
 import com.github.jahong1r_t.entity.enums.State;
 import com.github.jahong1r_t.repository.ChannelsRepository;
 import com.github.jahong1r_t.repository.MoviesRepository;
+import com.github.jahong1r_t.repository.UserRepository;
 import com.github.jahong1r_t.utils.Message;
 import com.github.jahong1r_t.utils.Utils;
 import lombok.SneakyThrows;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -21,17 +24,19 @@ import static com.github.jahong1r_t.utils.Keyboard.admin_tools_data;
 
 public class CallBackService {
     private final MoviesRepository moviesRepository = new MoviesRepository();
+    private final UserRepository userRepository = new UserRepository();
     private final ChannelsRepository channelsRepository = new ChannelsRepository();
 
     @SneakyThrows
     public void service(CallbackQuery callbackQuery, Utils utils) {
         String data = callbackQuery.getData();
+        org.telegram.telegrambots.meta.api.objects.User from = callbackQuery.getFrom();
         String id = callbackQuery.getId();
         Long chatId = callbackQuery.getFrom().getId();
         Integer messageId = callbackQuery.getMessage().getMessageId();
 
         if (data.equals("check")) {
-            check(id, chatId, messageId, utils);
+            check(id, chatId, messageId, utils, from);
         } else if (data.startsWith("page")) {
             pagination(data, utils, chatId, messageId, id);
         } else if (data.startsWith("tool")) {
@@ -47,10 +52,26 @@ public class CallBackService {
 
     /// 100% done | checked
     @SneakyThrows
-    private void check(String id, Long chatId, Integer messageId, Utils utils) {
+    private void check(String id, Long chatId, Integer messageId, Utils utils, org.telegram.telegrambots.meta.api.objects.User from) {
         if (utils.isChatMember(chatId, channelsRepository.getAllChannel())) {
             utils.deleteMessage(chatId, messageId);
             utils.sendMessage(chatId, Message.promptMovieCodeMsg);
+            if (!userRepository.isExist(chatId)) {
+                User user = User.builder()
+                        .id(chatId)
+                        .username(from.getUserName() != null
+                                ? from.getUserName()
+                                : "Nomalum")
+                        .fullName(from.getFirstName() + " " +
+                                (from.getLastName() != null
+                                        ? from.getLastName()
+                                        : ""))
+                        .joinDate(LocalDateTime.now())
+                        .lastActivity(LocalDateTime.now())
+                        .requestCount(0)
+                        .build();
+                userRepository.insertUser(user);
+            }
         } else {
             utils.answerCallbackQuery(id, Message.notFollowedChannelsMsg, true);
         }
