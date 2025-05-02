@@ -310,7 +310,7 @@ public class AdminService {
         moviesRepository.findMostRatedAndTopMovie().ifPresent(movie ->
                 sb.append("• Eng yuqori baholangan film: ")
                         .append(movie.getCaption())
-                        .append(" — O'rtacha").append(String.format("%.1f", movie.getAvgRate()))
+                        .append(" — ").append(String.format("%.1f", movie.getAvgRate()))
                         .append(" yulduz\n")
         );
 

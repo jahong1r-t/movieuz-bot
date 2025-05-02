@@ -97,7 +97,7 @@ public class UserService {
                 """.formatted(
                 movie.getCaption(),
                 movie.getDownload(),
-                movie.getAvgRate()
+                String.format("%.1f", movie.getAvgRate())
         );
     }
 }
