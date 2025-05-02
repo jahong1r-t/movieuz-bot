@@ -84,7 +84,7 @@ public class UserService {
         }
     }
 
-    /// 100% done | unchecked
+    /// 100% done | checked
     private String captionBuilder(Movie movie) {
         return """
                 🎬 %s

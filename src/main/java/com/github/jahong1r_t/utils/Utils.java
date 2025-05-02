@@ -31,15 +31,11 @@ import java.util.stream.IntStream;
 @AllArgsConstructor
 public class Utils {
     private final AbsSender bot;
-    private static final SendMessage sendMessage = new SendMessage();
-    private static final SendVideo sendVideo = new SendVideo();
-    private static final DeleteMessage deleteMessage = new DeleteMessage();
-    private static final InputFile inputFile = new InputFile();
-    private static final ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
-    private static final InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+
 
     @SneakyThrows
     public void sendMessage(Long chatId, String text) {
+        SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(chatId);
         sendMessage.setText(text);
         bot.execute(sendMessage);
@@ -48,6 +44,7 @@ public class Utils {
 
     @SneakyThrows
     public void sendMessage(Long chatId, String text, ReplyKeyboard replyKeyboard) {
+        SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(chatId);
         sendMessage.setText(text);
         sendMessage.setReplyMarkup(replyKeyboard);
@@ -56,15 +53,17 @@ public class Utils {
 
     @SneakyThrows
     public void sendVideo(Long chatId, String caption, String fileId, ReplyKeyboard replyKeyboard) {
+        SendVideo sendVideo = new SendVideo();
         sendVideo.setChatId(chatId);
         sendVideo.setCaption(caption);
-        sendVideo.setVideo(inputFile.setMedia(fileId));
+        sendVideo.setVideo(new InputFile(fileId));
         sendVideo.setReplyMarkup(replyKeyboard);
         bot.execute(sendVideo);
     }
 
     @SneakyThrows
     public void deleteMessage(Long chatId, Integer messageId) {
+        DeleteMessage deleteMessage = new DeleteMessage();
         deleteMessage.setChatId(chatId);
         deleteMessage.setMessageId(messageId);
         bot.execute(deleteMessage);
@@ -83,6 +82,7 @@ public class Utils {
 
     @SneakyThrows
     public ReplyKeyboard keyboard(String[][] buttons) {
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> rows = Arrays.stream(buttons)
                 .map(row -> {
                     KeyboardRow keyboardRow = new KeyboardRow();
@@ -99,6 +99,7 @@ public class Utils {
 
     @SneakyThrows
     public ReplyKeyboard inlineKeyboard(String[][] buttons, String[][] data) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
 
         List<List<InlineKeyboardButton>> rows =
                 IntStream.range(0, buttons.length)
@@ -116,6 +117,7 @@ public class Utils {
     }
 
     public InlineKeyboardMarkup inlineKeyboardWithLink(Set<String> urls) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
         int index = 1;

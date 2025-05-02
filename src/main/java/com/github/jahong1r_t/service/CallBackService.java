@@ -56,6 +56,7 @@ public class CallBackService {
         }
     }
 
+    /// 100% done | checked
     @SneakyThrows
     private void disconnectChannel(String id, String data, Utils utils) {
         if (channelsRepository.isExist(data)) {
@@ -64,6 +65,7 @@ public class CallBackService {
         }
     }
 
+    /// 100% done | checked
     @SneakyThrows
     private void pagination(String data, Utils utils, Long chatId, Integer messageId, String id) {
         String pageData = data.replace("page:", "");
@@ -77,7 +79,6 @@ public class CallBackService {
 
         ArrayList<String> messagePerPage = new ArrayList<>();
         ArrayList<String> datas = new ArrayList<>();
-        // Sort movies by addedDate (newest first), handling nulls
         List<Movie> sortedMovies = moviesRepository.getAllMovies().stream()
                 .sorted(Comparator.comparing(Movie::getAddedDate, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
@@ -94,7 +95,6 @@ public class CallBackService {
             String caption = movie.getCaption() != null ? movie.getCaption() : "Noma'lum";
             String addedDate = movie.getAddedDate() != null ? movie.getAddedDate().toLocalDate().toString() : "Noma'lum";
 
-            // Numbering resets to 1 for each page
             int displayNumber = (movieCount % 10) + 1;
             pageBuilder.append(displayNumber).append(". ").append(caption).append(" (").append(addedDate).append(").\n");
 
@@ -119,7 +119,6 @@ public class CallBackService {
 
         utils.sendPaginationKeyboard(chatId, messagePerPage, datas, newPage, messageId, id);
     }
-
 
     /// 100% done | checked
     @SneakyThrows
@@ -158,7 +157,7 @@ public class CallBackService {
         }
     }
 
-    /// 100% done | unchecked
+    /// 100% done | checked
     @SneakyThrows
     private void getMovie(String data, Long chatId, Utils utils) {
         Optional<Movie> movieByCode = moviesRepository.getMovieByCode(data);
