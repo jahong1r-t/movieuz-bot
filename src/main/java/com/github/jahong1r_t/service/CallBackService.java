@@ -206,7 +206,7 @@ public class CallBackService {
                 @movieuz_kino_bot
                 """.formatted(movie.getCaption(),
                 movie.getDownload(),
-                movie.getAvgRate(),
+                String.format("%.1f", movie.getAvgRate()),
                 movie.getAddedDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
                 movie.getCode());
     }
